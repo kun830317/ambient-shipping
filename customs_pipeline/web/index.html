@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>海關數據儀表板 · Ambient Shipping</title>
+<style>
+:root {
+  --surface-1: #fcfcfb; --page: #f9f9f7;
+  --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,0.10);
+  --import: #2a78d6; --export: #1baf7a;
+  --accent: #2a78d6; --danger: #d03b3b; --good: #006300;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface-1: #1a1a19; --page: #0d0d0d;
+    --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
+    --import: #3987e5; --export: #199e70;
+    --accent: #3987e5; --danger: #e66767; --good: #0ca30c;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 15px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+header { padding: 20px 24px 4px; }
+header h1 { margin: 0; font-size: 20px; }
+header p { margin: 4px 0 0; color: var(--ink-2); font-size: 13px; }
+main { padding: 12px 24px 48px; max-width: 1100px; margin: 0 auto; }
+.panel {
+  background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: 10px; padding: 18px 20px; margin-top: 16px;
+}
+.panel h2 { margin: 0 0 12px; font-size: 15px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+label { display: block; font-size: 12px; color: var(--ink-2); margin-bottom: 2px; }
+input, select, button {
+  font: inherit; color: var(--ink); background: var(--page);
+  border: 1px solid var(--baseline); border-radius: 6px; padding: 6px 10px;
+}
+input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); cursor: pointer; }
+button.primary:disabled { opacity: .5; cursor: wait; }
+button.ghost { cursor: pointer; }
+#fetch-status { margin: 10px 0 0; font-size: 13px; min-height: 1.2em; }
+#fetch-status.ok { color: var(--good); }
+#fetch-status.err { color: var(--danger); }
+.hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+/* chart */
+.legend { display: flex; gap: 16px; font-size: 12px; color: var(--ink-2); margin-bottom: 10px; }
+.legend span::before {
+  content: ""; display: inline-block; width: 10px; height: 10px;
+  border-radius: 3px; margin-right: 5px; vertical-align: -1px;
+}
+.legend .li-import::before { background: var(--import); }
+.legend .li-export::before { background: var(--export); }
+.cat { margin: 10px 0; }
+.cat-name { font-size: 13px; }
+.cat-name small { color: var(--muted); margin-left: 6px; }
+.barrow { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.bar {
+  height: 14px; border-radius: 0 4px 4px 0; min-width: 2px;
+  transition: width .3s;
+}
+.bar.import { background: var(--import); }
+.bar.export { background: var(--export); }
+.bar-val { font-size: 12px; color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+#chart .empty, #tbl .empty { color: var(--muted); font-size: 13px; }
+/* table */
+table { border-collapse: collapse; width: 100%; margin-top: 10px; font-size: 13px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+td.desc { white-space: normal; min-width: 220px; }
+th { color: var(--ink-2); font-weight: 600; position: sticky; top: 0; background: var(--surface-1); }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+tr:hover td { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.pager { display: flex; gap: 10px; align-items: center; margin-top: 10px; font-size: 13px; color: var(--ink-2); }
+.tablewrap { overflow-x: auto; }
+.badge {
+  display: inline-block; padding: 0 8px; border-radius: 10px; font-size: 12px;
+  border: 1px solid var(--border); color: var(--ink-2);
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>海關數據儀表板</h1>
+  <p id="meta-line">載入中…</p>
+</header>
+<main>
+
+<section class="panel">
+  <h2>① 抓取資料</h2>
+  <div class="row">
+    <div><label>資料來源</label>
+      <select id="f-source">
+        <option value="us-census">US Census（美國，免 key）</option>
+        <option value="un-comtrade">UN Comtrade（全球）</option>
+        <option value="taiwan-mof">台灣 財政部</option>
+      </select></div>
+    <div><label>流向</label>
+      <select id="f-flow"><option value="import">進口</option><option value="export">出口</option></select></div>
+    <div><label>期間</label><input id="f-period" placeholder="2026-03" size="9"></div>
+    <div><label>HS 層級</label>
+      <select id="f-hs"><option>HS2</option><option>HS4</option><option>HS6</option></select></div>
+    <div id="f-reporter-wrap" hidden><label>申報國 (M49)</label><input id="f-reporter" value="842" size="6"></div>
+    <div><label>夥伴國代碼</label><input id="f-partner" placeholder="選填" size="8"></div>
+    <div><button class="primary" id="f-go">開始抓取</button></div>
+  </div>
+  <p id="fetch-status"></p>
+  <p class="hint">代碼速查：台灣 Census 5830 / M49 490 · 越南 5520 / 704 · 中國 5700 / 156 · 日本 5880 / 392 · 南韓 5800 / 410。完整對照見 docs/data-sources.md。</p>
+</section>
+
+<section class="panel">
+  <h2>② 分類統計（美元）</h2>
+  <div class="row" style="margin-bottom:8px">
+    <div><label>期間</label><select id="s-period"><option value="">全部</option></select></div>
+  </div>
+  <div class="legend"><span class="li-import">進口</span><span class="li-export">出口</span></div>
+  <div id="chart"><p class="empty">尚無資料 — 先在上方抓取。</p></div>
+</section>
+
+<section class="panel">
+  <h2>③ 資料瀏覽</h2>
+  <div class="row">
+    <div><label>期間</label><select id="t-period"><option value="">全部</option></select></div>
+    <div><label>流向</label>
+      <select id="t-flow"><option value="">全部</option><option value="import">進口</option><option value="export">出口</option></select></div>
+    <div><label>來源</label><select id="t-source"><option value="">全部</option></select></div>
+    <div><label>搜尋（貨名/國家/HS碼）</label><input id="t-q" placeholder="例如 8542 或 越南" size="16"></div>
+    <div><button class="ghost" id="t-search">篩選</button></div>
+    <div><button class="ghost" id="t-export">⬇ 匯出 CSV</button></div>
+  </div>
+  <div class="tablewrap" id="tbl"></div>
+  <div class="pager">
+    <button class="ghost" id="t-prev">‹ 上一頁</button>
+    <span id="t-pageinfo"></span>
+    <button class="ghost" id="t-next">下一頁 ›</button>
+  </div>
+</section>
+
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const fmt = n => n == null ? "–" : Math.round(n).toLocaleString("en-US");
+let offset = 0; const LIMIT = 25;
+
+async function jget(url) {
+  const r = await fetch(url); const j = await r.json();
+  if (!r.ok) throw new Error(j.error || r.status);
+  return j;
+}
+
+async function loadMeta() {
+  const m = await jget("/api/meta");
+  $("meta-line").textContent =
+    `資料庫 ${m.db_path} · 共 ${m.total_records.toLocaleString()} 筆`;
+  for (const sel of [$("s-period"), $("t-period")]) {
+    const keep = sel.value;
+    sel.length = 1;
+    m.periods.forEach(p => sel.add(new Option(p, p)));
+    sel.value = keep;
+  }
+  const ts = $("t-source"); const keep = ts.value; ts.length = 1;
+  m.sources.forEach(s => ts.add(new Option(s, s)));
+  ts.value = keep;
+}
+
+async function loadSummary() {
+  const p = $("s-period").value;
+  const rows = await jget("/api/summary" + (p ? "?period=" + p : ""));
+  const el = $("chart");
+  if (!rows.length) { el.innerHTML = '<p class="empty">尚無資料 — 先在上方抓取。</p>'; return; }
+  // regroup: one row per category with import/export values
+  const cats = new Map();
+  for (const r of rows) {
+    const key = r.section + "|" + r.category_zh;
+    if (!cats.has(key)) cats.set(key, {section: r.section, zh: r.category_zh, en: r.category_en, import: 0, export: 0});
+    cats.get(key)[r.flow] += r.total_usd || 0;
+  }
+  const list = [...cats.values()].sort((a, b) => (b.import + b.export) - (a.import + a.export));
+  const max = Math.max(...list.map(c => Math.max(c.import, c.export)), 1);
+  el.innerHTML = list.map(c => {
+    const bars = ["import", "export"].filter(f => c[f] > 0).map(f => `
+      <div class="barrow" title="${c.zh} ${f === "import" ? "進口" : "出口"}：US$ ${fmt(c[f])}">
+        <div class="bar ${f}" style="width:${Math.max(c[f] / max * 72, 0.4)}%"></div>
+        <span class="bar-val">${fmt(c[f])}</span>
+      </div>`).join("");
+    return `<div class="cat">
+      <div class="cat-name"><span class="badge">${c.section}</span> ${c.zh}<small>${c.en}</small></div>
+      ${bars}</div>`;
+  }).join("");
+}
+
+function tableQuery() {
+  const q = new URLSearchParams();
+  if ($("t-period").value) q.set("period", $("t-period").value);
+  if ($("t-flow").value) q.set("flow", $("t-flow").value);
+  if ($("t-source").value) q.set("source", $("t-source").value);
+  if ($("t-q").value.trim()) q.set("q", $("t-q").value.trim());
+  return q;
+}
+
+async function loadTable() {
+  const q = tableQuery();
+  q.set("limit", LIMIT); q.set("offset", offset);
+  const d = await jget("/api/records?" + q);
+  const el = $("tbl");
+  if (!d.count) { el.innerHTML = '<p class="empty">沒有符合的資料。</p>'; $("t-pageinfo").textContent = ""; return; }
+  el.innerHTML = `<table><thead><tr>
+    <th>期間</th><th>來源</th><th>流向</th><th>夥伴國</th><th>HS碼</th>
+    <th>類別</th><th>貨名</th><th style="text-align:right">金額 (USD)</th>
+    </tr></thead><tbody>` +
+    d.rows.map(r => `<tr>
+      <td>${r.period}</td><td>${r.source}</td>
+      <td>${r.flow === "import" ? "進口" : "出口"}</td>
+      <td>${r.partner ?? ""}</td><td>${r.hs_code ?? ""}</td>
+      <td><span class="badge">${r.hs_section || "-"}</span> ${r.category_zh || ""}</td>
+      <td class="desc">${(r.description || "").slice(0, 60)}</td>
+      <td class="num">${fmt(r.value_usd)}</td></tr>`).join("") +
+    "</tbody></table>";
+  const page = Math.floor(offset / LIMIT) + 1;
+  const pages = Math.max(Math.ceil(d.count / LIMIT), 1);
+  $("t-pageinfo").textContent = `第 ${page} / ${pages} 頁 · 共 ${d.count.toLocaleString()} 筆`;
+  $("t-prev").disabled = offset === 0;
+  $("t-next").disabled = offset + LIMIT >= d.count;
+}
+
+async function refreshAll() { await loadMeta(); await loadSummary(); await loadTable(); }
+
+$("f-source").onchange = () =>
+  $("f-reporter-wrap").hidden = $("f-source").value !== "un-comtrade";
+
+$("f-go").onclick = async () => {
+  const btn = $("f-go"), st = $("fetch-status");
+  btn.disabled = true; st.className = ""; st.textContent = "抓取中…（大範圍查詢可能要一兩分鐘）";
+  try {
+    const r = await fetch("/api/fetch", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        source: $("f-source").value, flow: $("f-flow").value,
+        period: $("f-period").value.trim(), hs_level: $("f-hs").value,
+        reporter: $("f-reporter").value.trim(), partner: $("f-partner").value.trim(),
+      }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || r.status);
+    st.className = "ok"; st.textContent = `完成：存入 ${j.stored} 筆（已自動分類）`;
+    offset = 0; await refreshAll();
+  } catch (e) {
+    st.className = "err"; st.textContent = "失敗：" + e.message;
+  } finally { btn.disabled = false; }
+};
+
+$("s-period").onchange = loadSummary;
+$("t-search").onclick = () => { offset = 0; loadTable(); };
+$("t-q").onkeydown = e => { if (e.key === "Enter") { offset = 0; loadTable(); } };
+for (const id of ["t-period", "t-flow", "t-source"])
+  $(id).onchange = () => { offset = 0; loadTable(); };
+$("t-prev").onclick = () => { offset = Math.max(offset - LIMIT, 0); loadTable(); };
+$("t-next").onclick = () => { offset += LIMIT; loadTable(); };
+$("t-export").onclick = () => location.href = "/api/export.csv?" + tableQuery();
+
+refreshAll().catch(e => $("meta-line").textContent = "載入失敗：" + e.message);
+</script>
+</body>
+</html>

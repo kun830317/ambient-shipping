@@ -49,7 +49,17 @@ def main(argv=None):
     p_export.add_argument("--out", default="trade_records.csv")
     p_export.add_argument("--period")
 
+    p_serve = sub.add_parser("serve", help="start the local web dashboard")
+    p_serve.add_argument("--host", default="127.0.0.1")
+    p_serve.add_argument("--port", type=int, default=8765)
+
     args = parser.parse_args(argv)
+
+    if args.command == "serve":
+        from .webapp import serve
+        serve(db_path=args.db, host=args.host, port=args.port)
+        return
+
     conn = storage.connect(args.db)
 
     if args.command == "fetch":

@@ -89,6 +89,17 @@ python -m customs_pipeline summary --period 2026-03
 python -m customs_pipeline export --out trade.csv
 ```
 
+### 網頁儀表板（免指令操作）
+
+```bash
+python -m customs_pipeline serve          # 開 http://127.0.0.1:8765
+```
+
+瀏覽器介面提供：表單抓取（來源/流向/期間/HS 層級/夥伴國）、分類統計長條圖、
+資料篩選瀏覽（期間/流向/來源/關鍵字搜尋＋分頁）、一鍵匯出 CSV。
+純 Python 標準庫實作（`webapp.py` + `web/index.html`），不需額外安裝任何東西；
+僅綁定 localhost，屬個人工具、非對外服務。
+
 ### 自動排程（每月官方資料發布後抓取）
 
 ```cron
