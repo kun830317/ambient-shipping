@@ -37,10 +37,18 @@ def _records_query(params):
         if value:
             where.append("%s = ?" % field)
             args.append(value)
+    partner = params.get("partner")
+    if partner:
+        where.append("partner LIKE ?")
+        args.append("%" + partner + "%")
+    hs_code = params.get("hs_code")
+    if hs_code:
+        where.append("hs_code LIKE ?")   # prefix match: 85 hits 8542, 8517…
+        args.append(hs_code + "%")
     q = params.get("q")
     if q:
-        where.append("(description LIKE ? OR partner LIKE ? OR hs_code LIKE ?)")
-        args.extend(["%" + q + "%"] * 3)
+        where.append("description LIKE ?")
+        args.append("%" + q + "%")
     return " AND ".join(where), args
 
 

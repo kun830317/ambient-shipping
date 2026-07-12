@@ -129,7 +129,9 @@ tr:hover td { background: color-mix(in srgb, var(--accent) 7%, transparent); }
     <div><label>流向</label>
       <select id="t-flow"><option value="">全部</option><option value="import">進口</option><option value="export">出口</option></select></div>
     <div><label>來源</label><select id="t-source"><option value="">全部</option></select></div>
-    <div><label>搜尋（貨名/國家/HS碼）</label><input id="t-q" placeholder="例如 8542 或 越南" size="16"></div>
+    <div><label>國家（夥伴國）</label><input id="t-partner" placeholder="例如 越南 / VIETNAM" size="12"></div>
+    <div><label>HS 碼（前綴）</label><input id="t-hs" placeholder="例如 85 或 8542" size="8"></div>
+    <div><label>貨名關鍵字</label><input id="t-q" placeholder="例如 積體電路" size="12"></div>
     <div><button class="ghost" id="t-search">篩選</button></div>
     <div><button class="ghost" id="t-export">⬇ 匯出 CSV</button></div>
   </div>
@@ -199,6 +201,8 @@ function tableQuery() {
   if ($("t-period").value) q.set("period", $("t-period").value);
   if ($("t-flow").value) q.set("flow", $("t-flow").value);
   if ($("t-source").value) q.set("source", $("t-source").value);
+  if ($("t-partner").value.trim()) q.set("partner", $("t-partner").value.trim());
+  if ($("t-hs").value.trim()) q.set("hs_code", $("t-hs").value.trim());
   if ($("t-q").value.trim()) q.set("q", $("t-q").value.trim());
   return q;
 }
@@ -256,7 +260,8 @@ $("f-go").onclick = async () => {
 
 $("s-period").onchange = loadSummary;
 $("t-search").onclick = () => { offset = 0; loadTable(); };
-$("t-q").onkeydown = e => { if (e.key === "Enter") { offset = 0; loadTable(); } };
+for (const id of ["t-q", "t-partner", "t-hs"])
+  $(id).onkeydown = e => { if (e.key === "Enter") { offset = 0; loadTable(); } };
 for (const id of ["t-period", "t-flow", "t-source"])
   $(id).onchange = () => { offset = 0; loadTable(); };
 $("t-prev").onclick = () => { offset = Math.max(offset - LIMIT, 0); loadTable(); };
