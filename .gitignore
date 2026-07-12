@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+customs.db
+*.sqlite
+trade_records.csv

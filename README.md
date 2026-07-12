@@ -2,6 +2,13 @@
 
 This repo contains utilities for capturing AIS messages broadcast by passing ships and then joining them with public data sets that reveal what the ships are carrying.
 
+> **Note (2026):** The Enigma Public API that `ship-utils.py` depends on has been
+> shut down. See [`customs_pipeline/`](customs_pipeline/README.md) for a new
+> pipeline that fetches, normalizes and classifies public customs trade data
+> from sources that are still alive (US Census API, UN Comtrade, Taiwan MOF
+> open data), plus a survey of where bill-of-lading level data can be obtained
+> today.
+
 ### Overview:
 Ambient Shipping enables you to look inside cargo ships. It has two main components:
 
