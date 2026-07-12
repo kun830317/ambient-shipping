@@ -41,6 +41,9 @@ def main(argv=None):
                          help="partner code (Census CTY_CODE / Comtrade M49)")
     p_fetch.add_argument("--limit-files", type=int,
                          help="taiwan-mof: only download first N files")
+    p_fetch.add_argument("--file",
+                         help="importyeti: CSV file, directory, or glob "
+                              "downloaded from importyeti.com")
 
     p_summary = sub.add_parser("summary", help="value totals per category")
     p_summary.add_argument("--period")
@@ -66,7 +69,7 @@ def main(argv=None):
         records = FETCHERS[args.source](
             flow=args.flow, period=args.period, hs_level=args.hs_level,
             reporter=args.reporter, partner=args.partner,
-            limit_files=args.limit_files,
+            limit_files=args.limit_files, file=args.file,
         )
         for record in records:
             classify.classify_record(record)

@@ -12,6 +12,12 @@ from .schema import COLUMNS
 
 DEFAULT_DB = "customs.db"
 
+# Columns forming the identity of a record; everything else is refreshed
+# on re-fetch. `ref` (e.g. the BOL number) keeps individual shipments from
+# bill-of-lading sources distinct; statistics sources leave it empty.
+KEY_COLUMNS = ["source", "flow", "period", "reporter", "partner",
+               "hs_code", "description", "shipper", "consignee", "ref"]
+
 _CREATE_SQL = """
 CREATE TABLE IF NOT EXISTS trade_records (
     source        TEXT NOT NULL,
@@ -25,6 +31,9 @@ CREATE TABLE IF NOT EXISTS trade_records (
     category_en   TEXT,
     category_zh   TEXT,
     description   TEXT NOT NULL DEFAULT '',
+    shipper       TEXT NOT NULL DEFAULT '',
+    consignee     TEXT NOT NULL DEFAULT '',
+    ref           TEXT NOT NULL DEFAULT '',
     value_usd     REAL,
     value_local   REAL,
     quantity      REAL,
@@ -32,15 +41,34 @@ CREATE TABLE IF NOT EXISTS trade_records (
     weight_kg     REAL,
     raw           TEXT,
     fetched_at    TEXT DEFAULT (datetime('now')),
-    UNIQUE (source, flow, period, reporter, partner, hs_code, description)
+    UNIQUE (source, flow, period, reporter, partner, hs_code, description,
+            shipper, consignee, ref)
 );
 CREATE INDEX IF NOT EXISTS idx_records_period ON trade_records (period);
 CREATE INDEX IF NOT EXISTS idx_records_section ON trade_records (hs_section);
+CREATE INDEX IF NOT EXISTS idx_records_company ON trade_records (consignee, shipper);
 """
+
+
+def _migrate_legacy(conn):
+    """Rebuild pre-shipper/consignee databases into the current layout."""
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(trade_records)")]
+    if not cols or "shipper" in cols:
+        return
+    conn.execute("ALTER TABLE trade_records RENAME TO trade_records_legacy")
+    for index in ("idx_records_period", "idx_records_section"):
+        conn.execute("DROP INDEX IF EXISTS " + index)
+    conn.executescript(_CREATE_SQL)
+    common = ", ".join(c for c in cols if c in COLUMNS + ["fetched_at"])
+    conn.execute("INSERT INTO trade_records (%s) "
+                 "SELECT %s FROM trade_records_legacy" % (common, common))
+    conn.execute("DROP TABLE trade_records_legacy")
+    conn.commit()
 
 
 def connect(db_path=DEFAULT_DB):
     conn = sqlite3.connect(db_path)
+    _migrate_legacy(conn)
     conn.executescript(_CREATE_SQL)
     return conn
 
@@ -49,15 +77,13 @@ def upsert_records(conn, records):
     placeholders = ", ".join(":" + c for c in COLUMNS)
     updates = ", ".join(
         "%s = excluded.%s" % (c, c)
-        for c in COLUMNS
-        if c not in ("source", "flow", "period", "reporter", "partner",
-                     "hs_code", "description")
+        for c in COLUMNS if c not in KEY_COLUMNS
     )
     sql = (
         "INSERT INTO trade_records (%s) VALUES (%s) "
-        "ON CONFLICT (source, flow, period, reporter, partner, hs_code, description) "
-        "DO UPDATE SET %s, fetched_at = datetime('now')"
-        % (", ".join(COLUMNS), placeholders, updates)
+        "ON CONFLICT (%s) DO UPDATE SET %s, fetched_at = datetime('now')"
+        % (", ".join(COLUMNS), placeholders,
+           ", ".join(KEY_COLUMNS), updates)
     )
     with conn:
         conn.executemany(sql, [r.as_row() for r in records])

@@ -80,6 +80,7 @@
 |---|---|---|
 | [Data Liberation Project — CBP Bills of Lading](https://www.data-liberation-project.org/requests/cbp-bills-of-lading/) | 免費 | FOIA 取得 2013 起艙單並整理公開，**免費來源中最有希望** |
 | 自行 FOIA 申請 | 免費 | 直接向 CBP 申請，需等數月 |
+| ✅ [ImportYeti](https://www.importyeti.com/) | 免費 | 2015 起美國海運進口提單（FOIA），依公司名免費搜尋；公司頁可下載 CSV → `fetch importyeti --file` 匯入本系統，shipper/consignee 直接進儀表板 |
 | [ImportInfo](https://www.importinfo.com/) | 部分免費 | 2012 起美國進口艙單，可免費查詢部分記錄 |
 | [OEC Bill of Lading bulk](https://oec.world/en/resources/bulk-download/bill-of-lading) | 付費 | 已清理的 CBP 提單資料 |
 | [PIERS (S&P Global)](https://www.spglobal.com/market-intelligence/en/solutions/products/piers) | 付費 | 業界標準，每日處理約 6 萬筆提單 |
@@ -116,5 +117,6 @@
 - [x] pipeline 三來源 fetcher、HS 21 類雙語分類、關鍵字分類、SQLite 去重、CLI、離線測試 6/6 通過
 - [ ] 在有網路的機器上實跑三個 fetcher 驗證（開發沙箱無法對外連線）
 - [ ] 申請 Comtrade / Census 免費 API key
-- [ ] 追蹤 Data Liberation Project 提單資料集進度，寫 `sources/cbp_bol.py`
+- [x] ImportYeti 提單 CSV 匯入器（shipper/consignee 欄位＋公司搜尋）
+- [ ] 追蹤 Data Liberation Project 提單資料集進度（其 CSV 可透過同一個 importyeti 匯入器載入）
 - [ ] （選配）越南 NSO Excel 月報 fetcher、提單資料與 AIS join

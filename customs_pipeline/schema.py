@@ -18,6 +18,10 @@ class TradeRecord:
     partner: str                    # partner country ("WORLD" for totals)
     hs_code: str                    # HS commodity code, 2/4/6 digits ("" if unknown)
     description: str                # commodity description as given by the source
+    shipper: str = ""               # exporter of record (bill-of-lading sources)
+    consignee: str = ""             # importer of record (bill-of-lading sources)
+    ref: str = ""                   # shipment reference, e.g. BOL number; keeps
+                                    # per-shipment rows distinct in the unique key
     value_usd: Optional[float] = None       # trade value in USD
     value_local: Optional[float] = None     # trade value in reporter's currency
     quantity: Optional[float] = None
@@ -40,6 +44,6 @@ class TradeRecord:
 COLUMNS = [
     "source", "flow", "period", "reporter", "partner",
     "hs_code", "hs_chapter", "hs_section", "category_en", "category_zh",
-    "description", "value_usd", "value_local",
+    "description", "shipper", "consignee", "ref", "value_usd", "value_local",
     "quantity", "quantity_unit", "weight_kg", "raw",
 ]

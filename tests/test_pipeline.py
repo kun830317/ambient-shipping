@@ -8,11 +8,14 @@ the real API's documented wire format. Run with:
 """
 
 import json
+import os
+import sqlite3
+import tempfile
 import unittest
 from unittest import mock
 
 from customs_pipeline import classify, storage
-from customs_pipeline.sources import taiwan_mof, un_comtrade, us_census
+from customs_pipeline.sources import importyeti, taiwan_mof, un_comtrade, us_census
 
 
 class FakeResponse:
@@ -143,6 +146,103 @@ class TaiwanTest(unittest.TestCase):
             records = taiwan_mof.fetch(period="2026-02")
         self.assertEqual(len(records), 1)
         self.assertEqual(records[0].description, "甲殼類動物")
+
+
+IMPORTYETI_CSV = (
+    "Arrival Date,Bill of Lading,Consignee,Shipper,Shipper Country,"
+    "Product Description,HS Code,Weight (kg),Quantity,Quantity Unit\n"
+    "2026-05-14,MAEU12345678,ACME IMPORTS LLC,SHENZHEN WIDGET CO LTD,China,"
+    "PLASTIC KITCHENWARE,3924.10,\"1,200\",500,CTN\n"
+    "05/20/2026,OOLU87654321,ACME IMPORTS LLC,HANOI FURNITURE JSC,Vietnam,"
+    "WOODEN FURNITURE PARTS,,850,300,CTN\n"
+)
+
+
+class ImportYetiTest(unittest.TestCase):
+    def _write_csv(self, content=IMPORTYETI_CSV):
+        f = tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False,
+                                        encoding="utf-8")
+        f.write(content)
+        f.close()
+        self.addCleanup(os.unlink, f.name)
+        return f.name
+
+    def test_parse_shipper_consignee(self):
+        records = importyeti.fetch(file=self._write_csv())
+        self.assertEqual(len(records), 2)
+        first = records[0]
+        self.assertEqual(first.shipper, "SHENZHEN WIDGET CO LTD")
+        self.assertEqual(first.consignee, "ACME IMPORTS LLC")
+        self.assertEqual(first.partner, "China")
+        self.assertEqual(first.period, "2026-05")
+        self.assertEqual(first.hs_code, "392410")
+        self.assertEqual(first.weight_kg, 1200.0)
+        self.assertEqual(first.ref, "MAEU12345678")
+        self.assertEqual(classify.classify_record(first).hs_section, "VII")
+        # second row: US-style date, no HS code -> keyword classification
+        second = classify.classify_record(records[1])
+        self.assertEqual(second.period, "2026-05")
+        self.assertEqual(second.hs_code, "")
+        self.assertEqual(second.hs_section, "XX")
+
+    def test_shipments_stay_distinct_in_db(self):
+        records = [classify.classify_record(r)
+                   for r in importyeti.fetch(file=self._write_csv())]
+        conn = storage.connect(":memory:")
+        storage.upsert_records(conn, records)
+        storage.upsert_records(conn, records)
+        count, = conn.execute("SELECT COUNT(*) FROM trade_records").fetchone()
+        self.assertEqual(count, 2)
+
+    def test_rejects_csv_without_company_columns(self):
+        path = self._write_csv("a,b\n1,2\n")
+        with self.assertRaises(ValueError):
+            importyeti.fetch(file=path)
+
+    def test_file_required(self):
+        with self.assertRaises(ValueError):
+            importyeti.fetch()
+
+
+class MigrationTest(unittest.TestCase):
+    def test_legacy_db_upgraded_in_place(self):
+        path = tempfile.NamedTemporaryFile(suffix=".db", delete=False).name
+        self.addCleanup(os.unlink, path)
+        legacy = sqlite3.connect(path)
+        legacy.execute(
+            "CREATE TABLE trade_records ("
+            "source TEXT NOT NULL, flow TEXT NOT NULL, period TEXT NOT NULL,"
+            "reporter TEXT NOT NULL, partner TEXT NOT NULL,"
+            "hs_code TEXT NOT NULL DEFAULT '', hs_chapter TEXT,"
+            "hs_section TEXT, category_en TEXT, category_zh TEXT,"
+            "description TEXT NOT NULL DEFAULT '', value_usd REAL,"
+            "value_local REAL, quantity REAL, quantity_unit TEXT,"
+            "weight_kg REAL, raw TEXT,"
+            "fetched_at TEXT DEFAULT (datetime('now')),"
+            "UNIQUE (source, flow, period, reporter, partner, hs_code,"
+            "        description))")
+        legacy.execute(
+            "INSERT INTO trade_records (source, flow, period, reporter,"
+            " partner, hs_code, description, value_usd) VALUES"
+            " ('us_census', 'import', '2026-01', 'USA', 'TAIWAN', '85',"
+            "  'ELECTRIC MACHINERY', 123.0)")
+        legacy.commit()
+        legacy.close()
+
+        conn = storage.connect(path)  # triggers migration
+        cols = [r[1] for r in conn.execute("PRAGMA table_info(trade_records)")]
+        self.assertIn("shipper", cols)
+        self.assertIn("consignee", cols)
+        row = conn.execute(
+            "SELECT source, value_usd, shipper FROM trade_records").fetchone()
+        self.assertEqual(row, ("us_census", 123.0, ""))
+        # migrated DB must accept new-style upserts
+        records = importyeti.fetch(
+            file=ImportYetiTest._write_csv(self))
+        storage.upsert_records(conn, [classify.classify_record(r)
+                                      for r in records])
+        count, = conn.execute("SELECT COUNT(*) FROM trade_records").fetchone()
+        self.assertEqual(count, 3)
 
 
 class StorageTest(unittest.TestCase):

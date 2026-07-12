@@ -99,18 +99,22 @@ tr:hover td { background: color-mix(in srgb, var(--accent) 7%, transparent); }
         <option value="us-census">US Census（美國，免 key）</option>
         <option value="un-comtrade">UN Comtrade（全球）</option>
         <option value="taiwan-mof">台灣 財政部</option>
+        <option value="importyeti">ImportYeti CSV（提單/公司層級）</option>
       </select></div>
-    <div><label>流向</label>
+    <div class="api-only"><label>流向</label>
       <select id="f-flow"><option value="import">進口</option><option value="export">出口</option></select></div>
-    <div><label>期間</label><input id="f-period" placeholder="2026-03" size="9"></div>
-    <div><label>HS 層級</label>
+    <div class="api-only"><label>期間</label><input id="f-period" placeholder="2026-03" size="9"></div>
+    <div class="api-only"><label>HS 層級</label>
       <select id="f-hs"><option>HS2</option><option>HS4</option><option>HS6</option></select></div>
     <div id="f-reporter-wrap" hidden><label>申報國 (M49)</label><input id="f-reporter" value="842" size="6"></div>
-    <div><label>夥伴國代碼</label><input id="f-partner" placeholder="選填" size="8"></div>
+    <div class="api-only"><label>夥伴國代碼</label><input id="f-partner" placeholder="選填" size="8"></div>
+    <div id="f-file-wrap" hidden><label>CSV 檔案路徑（可用資料夾或 *.csv）</label>
+      <input id="f-file" placeholder="C:\Downloads\acme.csv" size="34"></div>
     <div><button class="primary" id="f-go">開始抓取</button></div>
   </div>
   <p id="fetch-status"></p>
-  <p class="hint">代碼速查：台灣 Census 5830 / M49 490 · 越南 5520 / 704 · 中國 5700 / 156 · 日本 5880 / 392 · 南韓 5800 / 410。完整對照見 docs/data-sources.md。</p>
+  <p class="hint">代碼速查：台灣 Census 5830 / M49 490 · 越南 5520 / 704 · 中國 5700 / 156 · 日本 5880 / 392 · 南韓 5800 / 410。完整對照見 docs/data-sources.md。<br>
+  ImportYeti：到 <a href="https://www.importyeti.com" target="_blank">importyeti.com</a> 免費註冊 → 搜尋公司 → 下載 CSV → 在上方填入檔案路徑匯入，即可取得出口商（shipper）與進口商（consignee）。</p>
 </section>
 
 <section class="panel">
@@ -131,6 +135,7 @@ tr:hover td { background: color-mix(in srgb, var(--accent) 7%, transparent); }
     <div><label>來源</label><select id="t-source"><option value="">全部</option></select></div>
     <div><label>國家（夥伴國）</label><input id="t-partner" placeholder="例如 越南 / VIETNAM" size="12"></div>
     <div><label>HS 碼（前綴）</label><input id="t-hs" placeholder="例如 85 或 8542" size="8"></div>
+    <div><label>公司（出口/進口商）</label><input id="t-company" placeholder="例如 ACME" size="12"></div>
     <div><label>貨名關鍵字</label><input id="t-q" placeholder="例如 積體電路" size="12"></div>
     <div><button class="ghost" id="t-search">篩選</button></div>
     <div><button class="ghost" id="t-export">⬇ 匯出 CSV</button></div>
@@ -179,8 +184,9 @@ async function loadSummary() {
   const cats = new Map();
   for (const r of rows) {
     const key = r.section + "|" + r.category_zh;
-    if (!cats.has(key)) cats.set(key, {section: r.section, zh: r.category_zh, en: r.category_en, import: 0, export: 0});
+    if (!cats.has(key)) cats.set(key, {section: r.section, zh: r.category_zh, en: r.category_en, import: 0, export: 0, n: 0});
     cats.get(key)[r.flow] += r.total_usd || 0;
+    cats.get(key).n += r.rows;
   }
   const list = [...cats.values()].sort((a, b) => (b.import + b.export) - (a.import + a.export));
   const max = Math.max(...list.map(c => Math.max(c.import, c.export)), 1);
@@ -189,7 +195,8 @@ async function loadSummary() {
       <div class="barrow" title="${c.zh} ${f === "import" ? "進口" : "出口"}：US$ ${fmt(c[f])}">
         <div class="bar ${f}" style="width:${Math.max(c[f] / max * 72, 0.4)}%"></div>
         <span class="bar-val">${fmt(c[f])}</span>
-      </div>`).join("");
+      </div>`).join("") ||
+      `<div class="barrow"><span class="bar-val">共 ${c.n} 筆（此來源不含金額，如提單資料）</span></div>`;
     return `<div class="cat">
       <div class="cat-name"><span class="badge">${c.section}</span> ${c.zh}<small>${c.en}</small></div>
       ${bars}</div>`;
@@ -203,6 +210,7 @@ function tableQuery() {
   if ($("t-source").value) q.set("source", $("t-source").value);
   if ($("t-partner").value.trim()) q.set("partner", $("t-partner").value.trim());
   if ($("t-hs").value.trim()) q.set("hs_code", $("t-hs").value.trim());
+  if ($("t-company").value.trim()) q.set("company", $("t-company").value.trim());
   if ($("t-q").value.trim()) q.set("q", $("t-q").value.trim());
   return q;
 }
@@ -215,7 +223,8 @@ async function loadTable() {
   if (!d.count) { el.innerHTML = '<p class="empty">沒有符合的資料。</p>'; $("t-pageinfo").textContent = ""; return; }
   el.innerHTML = `<table><thead><tr>
     <th>期間</th><th>來源</th><th>流向</th><th>夥伴國</th><th>HS碼</th>
-    <th>類別</th><th>貨名</th><th style="text-align:right">金額 (USD)</th>
+    <th>類別</th><th>貨名</th><th>出口商 (shipper)</th><th>進口商 (consignee)</th>
+    <th style="text-align:right">金額 (USD)</th>
     </tr></thead><tbody>` +
     d.rows.map(r => `<tr>
       <td>${r.period}</td><td>${r.source}</td>
@@ -223,6 +232,8 @@ async function loadTable() {
       <td>${r.partner ?? ""}</td><td>${r.hs_code ?? ""}</td>
       <td><span class="badge">${r.hs_section || "-"}</span> ${r.category_zh || ""}</td>
       <td class="desc">${(r.description || "").slice(0, 60)}</td>
+      <td>${(r.shipper || "–").slice(0, 32)}</td>
+      <td>${(r.consignee || "–").slice(0, 32)}</td>
       <td class="num">${fmt(r.value_usd)}</td></tr>`).join("") +
     "</tbody></table>";
   const page = Math.floor(offset / LIMIT) + 1;
@@ -234,8 +245,12 @@ async function loadTable() {
 
 async function refreshAll() { await loadMeta(); await loadSummary(); await loadTable(); }
 
-$("f-source").onchange = () =>
-  $("f-reporter-wrap").hidden = $("f-source").value !== "un-comtrade";
+$("f-source").onchange = () => {
+  const src = $("f-source").value;
+  $("f-reporter-wrap").hidden = src !== "un-comtrade";
+  $("f-file-wrap").hidden = src !== "importyeti";
+  document.querySelectorAll(".api-only").forEach(el => el.hidden = src === "importyeti");
+};
 
 $("f-go").onclick = async () => {
   const btn = $("f-go"), st = $("fetch-status");
@@ -247,6 +262,7 @@ $("f-go").onclick = async () => {
         source: $("f-source").value, flow: $("f-flow").value,
         period: $("f-period").value.trim(), hs_level: $("f-hs").value,
         reporter: $("f-reporter").value.trim(), partner: $("f-partner").value.trim(),
+        file: $("f-file").value.trim(),
       }),
     });
     const j = await r.json();
@@ -260,7 +276,7 @@ $("f-go").onclick = async () => {
 
 $("s-period").onchange = loadSummary;
 $("t-search").onclick = () => { offset = 0; loadTable(); };
-for (const id of ["t-q", "t-partner", "t-hs"])
+for (const id of ["t-q", "t-partner", "t-hs", "t-company"])
   $(id).onkeydown = e => { if (e.key === "Enter") { offset = 0; loadTable(); } };
 for (const id of ["t-period", "t-flow", "t-source"])
   $(id).onchange = () => { offset = 0; loadTable(); };

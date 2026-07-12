@@ -12,6 +12,7 @@
 | [US Census International Trade API](https://www.census.gov/data/developers/data-sets/international-trade.html) | 美國每月進出口值，依 HS 2/4/6 碼 × 貿易夥伴國 | 2013 至今，每月更新 | REST API，免費（[申請 API key](https://api.census.gov/data/key_signup.html) 後額度較高） |
 | [UN Comtrade+](https://comtradeplus.un.org/) | 全球多數國家官方貿易統計，HS 碼 × 國家 | 年資料 1988 起、月資料 2000 起 | REST API，[免費註冊](https://uncomtrade.org/docs/how-to-create-an-account/) 每日 500 次、每次 10 萬筆 |
 | [台灣 政府資料開放平臺 #6053](https://data.gov.tw/dataset/6053) | 財政部關務署海關進出口貿易統計 | 每月更新 | 開放授權檔案下載 |
+| [ImportYeti](https://www.importyeti.com/) | 美國海運進口提單：出口商 (shipper)、進口商 (consignee)、貨名 | 2015 至今（CBP FOIA） | 免費註冊後於公司頁下載 CSV，`fetch importyeti --file` 匯入（該站無公開 API，勿爬網站） |
 
 ### 提單（Bill of Lading）層級資料 — 本 repo 原本的用途
 
@@ -83,6 +84,10 @@ python -m customs_pipeline fetch un-comtrade --reporter 842 --partner 156 --peri
 
 # 台灣財政部開放資料
 python -m customs_pipeline fetch taiwan-mof
+
+# ImportYeti 提單 CSV（含出口商 shipper / 進口商 consignee）：
+# 到 importyeti.com 免費註冊 → 搜尋公司 → 下載 CSV → 匯入
+python -m customs_pipeline fetch importyeti --file ~/Downloads/acme.csv
 
 # 各類別金額統計 / 匯出 CSV
 python -m customs_pipeline summary --period 2026-03

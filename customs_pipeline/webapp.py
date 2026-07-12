@@ -45,6 +45,10 @@ def _records_query(params):
     if hs_code:
         where.append("hs_code LIKE ?")   # prefix match: 85 hits 8542, 8517…
         args.append(hs_code + "%")
+    company = params.get("company")
+    if company:
+        where.append("(shipper LIKE ? OR consignee LIKE ?)")
+        args.extend(["%" + company + "%"] * 2)
     q = params.get("q")
     if q:
         where.append("description LIKE ?")
@@ -185,6 +189,7 @@ class Handler(BaseHTTPRequestHandler):
             "reporter": body.get("reporter") or "842",
             "partner": body.get("partner") or None,
             "limit_files": body.get("limit_files") or None,
+            "file": body.get("file") or None,
         }
         records = FETCHERS[source](**kwargs)
         for record in records:
