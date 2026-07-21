@@ -1,7 +1,7 @@
-<title>報關行利潤計算器</title>
+<title>报关行利润计算器</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  /* ============ Design tokens：港口帳冊 harbor-ledger ============ */
+  /* ============ Design tokens：港口账册 harbor-ledger ============ */
   :root {
     --bg:        #E9EDEC;
     --surface:   #FBFCFC;
@@ -23,7 +23,7 @@
     --shadow:    0 1px 2px rgba(20,32,30,.06), 0 6px 20px rgba(20,32,30,.06);
     --radius:    10px;
     --mono: ui-monospace, "SF Mono", "SFMono-Regular", "Menlo", "Consolas", monospace;
-    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -74,6 +74,10 @@
   button { font-family: inherit; cursor: pointer; }
   input, select { font-family: inherit; }
 
+  /* Vietnamese secondary text */
+  .vn { display: block; font-weight: 400; font-size: .8em; color: var(--faint); letter-spacing: .1px; margin-top: 1px; line-height: 1.3; }
+  .vn-i { font-weight: 400; font-size: 10.5px; color: var(--faint); letter-spacing: .1px; line-height: 1.2; }
+
   .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px 64px; }
 
   /* ============ Header ============ */
@@ -95,16 +99,18 @@
     box-shadow: inset 0 0 0 2px color-mix(in srgb, #fff 22%, transparent);
   }
   .brand-txt strong { font-size: 15px; letter-spacing: .2px; display: block; line-height: 1.15; }
-  .brand-txt span { font-size: 11.5px; color: var(--faint); letter-spacing: .3px; }
+  .brand-txt span { font-size: 11px; color: var(--faint); letter-spacing: .2px; }
 
   .tabs { display: flex; gap: 2px; background: var(--surface-2); padding: 3px; border-radius: 9px; border: 1px solid var(--line-soft); }
   .tab {
     border: 0; background: transparent; color: var(--muted);
-    padding: 7px 14px; border-radius: 7px; font-size: 13.5px; font-weight: 600;
-    display: flex; align-items: center; gap: 7px;
+    padding: 6px 13px; border-radius: 7px; font-size: 13.5px; font-weight: 600;
+    display: flex; flex-direction: column; align-items: center; gap: 0; line-height: 1.2;
   }
+  .tab-cn { display: flex; align-items: center; gap: 6px; }
   .tab .n { font-family: var(--mono); font-size: 11px; opacity: .7; }
   .tab[aria-selected="true"] { background: var(--surface); color: var(--accent-ink); box-shadow: var(--shadow); }
+  .tab[aria-selected="true"] .vn-i { color: color-mix(in srgb, var(--accent-ink) 60%, var(--faint)); }
   .icon-btn {
     border: 1px solid var(--line); background: var(--surface); color: var(--muted);
     width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; font-size: 15px;
@@ -129,6 +135,7 @@
   }
   .eyebrow::before { content: ""; width: 14px; height: 2px; background: var(--accent); border-radius: 2px; }
   .card-title { font-size: 16.5px; font-weight: 700; letter-spacing: .2px; }
+  .card-title .vn { font-size: 12px; margin-top: 2px; }
   .card-hd { margin-bottom: 16px; }
 
   /* type selector */
@@ -143,11 +150,13 @@
   .type-opt .badge { font-family: var(--mono); font-size: 11px; color: var(--muted); font-weight: 700; }
   .type-opt.sel .badge { color: var(--accent-ink); }
   .type-opt .t { font-weight: 700; font-size: 14.5px; margin-top: 2px; }
-  .type-opt .d { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+  .type-opt .t .vn { font-size: 11.5px; }
+  .type-opt .d { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.4; }
+  .type-opt .d .vn { margin-top: 2px; }
 
   /* fields */
   .field { display: flex; flex-direction: column; gap: 6px; }
-  .field label { font-size: 12.5px; font-weight: 600; color: var(--muted); letter-spacing: .2px; }
+  .field label { font-size: 12.5px; font-weight: 600; color: var(--muted); letter-spacing: .2px; line-height: 1.3; }
   .field label .hint { font-weight: 400; color: var(--faint); }
   .frow { display: grid; gap: 14px; }
   .frow.c2 { grid-template-columns: 1fr 1fr; }
@@ -184,90 +193,101 @@
 
   .actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
   .btn {
-    border: 0; border-radius: 9px; padding: 11px 20px; font-size: 14px; font-weight: 700; letter-spacing: .2px;
-    display: inline-flex; align-items: center; gap: 8px;
+    border: 0; border-radius: 9px; padding: 9px 18px; font-size: 14px; font-weight: 700; letter-spacing: .2px;
+    display: inline-flex; flex-direction: column; align-items: center; gap: 0; line-height: 1.25;
   }
+  .btn .vn-i { font-weight: 500; }
   .btn-primary { background: var(--accent); color: #fff; box-shadow: var(--shadow); }
+  .btn-primary .vn-i { color: rgba(255,255,255,.72); }
   .btn-primary:hover { background: var(--accent-ink); }
   .btn-ghost { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
   .btn-ghost:hover { color: var(--ink); }
 
   /* ============ Result panel ============ */
-  .result { position: sticky; top: 72px; }
+  .result { position: sticky; top: 78px; }
   .result-card { padding: 0; overflow: hidden; }
   .result-hd { padding: 16px 20px; border-bottom: 1px solid var(--line-soft); display: flex; align-items: baseline; justify-content: space-between; }
   .result-hd .type-tag {
     font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: .5px;
     padding: 3px 8px; border-radius: 20px; background: var(--accent-wash); color: var(--accent-ink);
   }
-  .total-block { padding: 20px; text-align: center; background: var(--surface-2); border-bottom: 1px solid var(--line-soft); }
+  .total-block { padding: 18px 20px; text-align: center; background: var(--surface-2); border-bottom: 1px solid var(--line-soft); }
   .total-block .lbl { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
-  .total-num { font-family: var(--mono); font-size: 33px; font-weight: 700; letter-spacing: -.5px; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .total-block .lbl .vn { text-transform: none; letter-spacing: normal; font-size: 10.5px; margin-top: 1px; }
+  .total-num { font-family: var(--mono); font-size: 32px; font-weight: 700; letter-spacing: -.5px; margin-top: 6px; font-variant-numeric: tabular-nums; }
   .total-num.pos { color: var(--pos); }
   .total-num.neg { color: var(--neg); }
   .total-num .cur { font-size: 15px; color: var(--faint); font-weight: 600; margin-left: 4px; }
   .total-sub { font-size: 12.5px; color: var(--muted); margin-top: 5px; font-family: var(--mono); }
 
   .lines { padding: 8px 20px 6px; }
-  .line { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; border-bottom: 1px dotted var(--line-soft); font-size: 13.5px; }
+  .line { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; border-bottom: 1px dotted var(--line-soft); font-size: 13.5px; gap: 12px; }
   .line:last-child { border-bottom: 0; }
-  .line .k { color: var(--muted); display: flex; align-items: center; gap: 7px; }
-  .line .k .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
-  .line .v { font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 600; }
+  .line .k { color: var(--muted); display: flex; align-items: baseline; gap: 7px; }
+  .line .k .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; align-self: center; }
+  .line .k .vn { font-size: 10.5px; margin-top: 0; }
+  .line .v { font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
   .line.sum { border-top: 1px solid var(--line); border-bottom: 0; margin-top: 4px; padding-top: 11px; }
   .line.sum .k { color: var(--ink); font-weight: 700; }
   .v.pos { color: var(--pos); } .v.neg { color: var(--neg); }
   .line.muted .k, .line.muted .v { color: var(--faint); font-weight: 500; }
 
   .margin-bar { padding: 14px 20px 18px; }
-  .margin-bar .mtop { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted); margin-bottom: 7px; }
+  .margin-bar .mtop { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; color: var(--muted); margin-bottom: 7px; gap: 10px; }
   .margin-bar .mtop b { font-family: var(--mono); color: var(--ink); font-size: 14px; }
+  .margin-bar .mtop .vn { font-size: 10px; }
   .track { height: 8px; background: var(--surface-2); border-radius: 20px; overflow: hidden; border: 1px solid var(--line-soft); }
   .track .fill { height: 100%; border-radius: 20px; transition: width .3s ease; }
 
   /* ============ Orders table ============ */
   .toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 24px 0 16px; }
   .toolbar .grow { margin-right: auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .search { min-width: 200px; }
-  .pill-count { font-family: var(--mono); font-size: 12px; color: var(--muted); background: var(--surface-2); border: 1px solid var(--line-soft); padding: 4px 10px; border-radius: 20px; }
+  .search { min-width: 210px; }
+  .pill-count { font-family: var(--mono); font-size: 12px; color: var(--muted); background: var(--surface-2); border: 1px solid var(--line-soft); padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
 
   .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
-  table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 13.5px; }
+  table { border-collapse: collapse; width: 100%; min-width: 820px; font-size: 13.5px; }
   thead th {
-    text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase;
-    color: var(--faint); padding: 12px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; background: var(--surface-2);
+    text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .4px;
+    color: var(--faint); padding: 10px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; background: var(--surface-2); vertical-align: bottom;
   }
+  thead th .vn { font-weight: 500; font-size: 9.5px; letter-spacing: 0; }
   th.num, td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  th.num .vn { text-align: right; }
   tbody td { padding: 11px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
   tbody tr:last-child td { border-bottom: 0; }
   tbody tr:hover { background: var(--surface-2); }
-  .tag-type { font-family: var(--mono); font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 5px; }
+  .tag-type { font-family: var(--mono); font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 5px; white-space: nowrap; }
   .tag-type.t1 { background: var(--accent-wash); color: var(--accent-ink); }
   .tag-type.t2 { background: color-mix(in srgb, var(--brass) 20%, transparent); color: var(--brass); }
   .row-act { display: flex; gap: 6px; }
   .mini {
     border: 1px solid var(--line); background: var(--surface); color: var(--muted);
-    padding: 4px 9px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    padding: 4px 9px; border-radius: 6px; font-size: 12px; font-weight: 600; white-space: nowrap;
   }
   .mini:hover { color: var(--ink); border-color: var(--faint); }
   .mini.danger:hover { color: var(--neg); border-color: var(--neg); background: var(--neg-wash); }
 
   .empty { text-align: center; padding: 60px 20px; color: var(--faint); }
   .empty .big { font-size: 40px; margin-bottom: 10px; opacity: .5; }
-  .empty p { font-size: 14px; }
+  .empty h3 { font-size: 16px; color: var(--muted); }
+  .empty p { font-size: 13.5px; margin-top: 4px; }
+  .empty .vn { font-size: 11.5px; }
 
   /* ============ Summary ============ */
   .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 24px 0; }
   @media (max-width: 720px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
   .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
-  .kpi .k { font-size: 11.5px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--faint); }
-  .kpi .v { font-family: var(--mono); font-size: 23px; font-weight: 700; margin-top: 8px; font-variant-numeric: tabular-nums; letter-spacing: -.5px; }
+  .kpi .k { font-size: 11.5px; font-weight: 700; letter-spacing: .3px; color: var(--faint); }
+  .kpi .k .vn { font-size: 9.5px; font-weight: 500; }
+  .kpi .v { font-family: var(--mono); font-size: 22px; font-weight: 700; margin-top: 8px; font-variant-numeric: tabular-nums; letter-spacing: -.5px; }
   .kpi .v .cur { font-size: 12px; color: var(--faint); font-weight: 600; }
-  .kpi .sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .kpi .sub { font-size: 11.5px; color: var(--muted); margin-top: 3px; }
   .kpi.hero .v { color: var(--pos); }
 
   .seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: 8px; padding: 3px; gap: 2px; }
-  .seg button { border: 0; background: transparent; color: var(--muted); padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; }
+  .seg button { border: 0; background: transparent; color: var(--muted); padding: 5px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; line-height: 1.2; }
+  .seg button .vn-i { display: block; }
   .seg button[aria-selected="true"] { background: var(--surface); color: var(--accent-ink); box-shadow: var(--shadow); }
 
   /* rates */
@@ -276,14 +296,15 @@
   .rate-item label { color: var(--muted); font-weight: 600; white-space: nowrap; }
   .rate-item input { width: 96px; }
 
-  .note { font-size: 12px; color: var(--faint); margin-top: 8px; line-height: 1.5; }
-  .foot { text-align: center; color: var(--faint); font-size: 12px; margin-top: 40px; }
+  .note { font-size: 12px; color: var(--faint); margin-top: 8px; line-height: 1.55; }
+  .foot { text-align: center; color: var(--faint); font-size: 12px; margin-top: 40px; line-height: 1.6; }
 
   .toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
-    background: var(--ink); color: var(--bg); padding: 11px 20px; border-radius: 10px; font-size: 13.5px; font-weight: 600;
-    box-shadow: 0 8px 30px rgba(0,0,0,.25); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 50;
+    background: var(--ink); color: var(--bg); padding: 10px 20px; border-radius: 10px; font-size: 13.5px; font-weight: 600;
+    box-shadow: 0 8px 30px rgba(0,0,0,.25); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 50; text-align: center; line-height: 1.35;
   }
+  .toast .vn-i { display: block; opacity: .75; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
   @media print {
@@ -300,16 +321,16 @@
     <div class="brand">
       <div class="mark">₫</div>
       <div class="brand-txt">
-        <strong>報關行利潤計算器</strong>
-        <span>Customs Broker Profit Calculator</span>
+        <strong>报关行利润计算器</strong>
+        <span>Máy tính lợi nhuận đại lý hải quan</span>
       </div>
     </div>
     <div class="tabs" role="tablist">
-      <button class="tab" role="tab" aria-selected="true" data-tab="calc"><span class="n">01</span>計算 / 新增</button>
-      <button class="tab" role="tab" aria-selected="false" data-tab="orders"><span class="n">02</span>訂單列表</button>
-      <button class="tab" role="tab" aria-selected="false" data-tab="summary"><span class="n">03</span>彙總報表</button>
+      <button class="tab" role="tab" aria-selected="true" data-tab="calc"><span class="tab-cn"><span class="n">01</span>计算 / 新增</span><span class="vn-i">Tính / Thêm</span></button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="orders"><span class="tab-cn"><span class="n">02</span>订单列表</span><span class="vn-i">Danh sách đơn</span></button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="summary"><span class="tab-cn"><span class="n">03</span>汇总报表</span><span class="vn-i">Báo cáo tổng hợp</span></button>
     </div>
-    <button class="icon-btn" id="themeBtn" title="切換深色 / 淺色">◑</button>
+    <button class="icon-btn" id="themeBtn" title="切换深色 / 浅色  ·  Nền tối / sáng">◑</button>
   </div>
 </div>
 
@@ -319,113 +340,113 @@
   <section class="panel active" id="panel-calc">
     <div class="grid-calc">
       <div>
-        <!-- 基本資訊 -->
+        <!-- 基本信息 -->
         <div class="card">
           <div class="card-hd">
-            <div class="eyebrow">訂單資訊</div>
-            <h2 class="card-title">基本資料與客戶類型</h2>
+            <div class="eyebrow">订单信息 · THÔNG TIN ĐƠN</div>
+            <h2 class="card-title">基本资料与客户类型<span class="vn">Thông tin cơ bản &amp; loại khách hàng</span></h2>
           </div>
           <div class="type-row" id="typeRow">
             <label class="type-opt sel">
               <input type="radio" name="ctype" value="1" checked>
-              <span class="badge">類型 1</span>
-              <span class="t">純代辦報關 + 拖車</span>
-              <span class="d">只賺服務費。利潤 = 報價 − 成本。</span>
+              <span class="badge">类型 1 · Loại 1</span>
+              <span class="t">纯代办报关 + 拖车<span class="vn">Chỉ khai hải quan + xe kéo</span></span>
+              <span class="d">只赚服务费。利润 = 报价 − 成本。<span class="vn">Chỉ thu phí dịch vụ. LN = báo giá − chi phí.</span></span>
             </label>
             <label class="type-opt">
               <input type="radio" name="ctype" value="2">
-              <span class="badge">類型 2</span>
-              <span class="t">Hong Khang 進出口代理</span>
-              <span class="d">貨款經過公司帳戶，多賺一層匯差。</span>
+              <span class="badge">类型 2 · Loại 2</span>
+              <span class="t">Hong Khang 进出口代理<span class="vn">Đại lý XNK Hong Khang</span></span>
+              <span class="d">货款经过公司账户，多赚一层汇差。<span class="vn">Tiền hàng qua công ty, kiếm thêm chênh lệch tỷ giá.</span></span>
             </label>
           </div>
           <div class="divider"></div>
           <div class="frow c3">
             <div class="field">
-              <label for="fDate">日期</label>
+              <label for="fDate">日期 <span class="hint">Ngày</span></label>
               <input type="date" id="fDate">
             </div>
             <div class="field">
-              <label for="fCustomer">客戶名稱</label>
-              <input type="text" id="fCustomer" placeholder="例：陳氏貿易">
+              <label for="fCustomer">客户名称 <span class="hint">Tên khách hàng</span></label>
+              <input type="text" id="fCustomer" placeholder="例 / VD：陈氏贸易">
             </div>
             <div class="field">
-              <label for="fContainer">貨櫃 / 報關單號 <span class="hint">選填</span></label>
-              <input type="text" id="fContainer" placeholder="例：TEMU6379303">
+              <label for="fContainer">货柜 / 报关单号 <span class="hint">Số container · tùy chọn</span></label>
+              <input type="text" id="fContainer" placeholder="TEMU6379303">
             </div>
           </div>
         </div>
 
-        <!-- 報價與成本 -->
+        <!-- 报价与成本 -->
         <div class="card">
           <div class="card-hd">
-            <div class="eyebrow">報價與成本</div>
-            <h2 class="card-title">All-in 報價與各項成本</h2>
+            <div class="eyebrow">报价与成本 · BÁO GIÁ &amp; CHI PHÍ</div>
+            <h2 class="card-title">All-in 报价与各项成本<span class="vn">Báo giá trọn gói &amp; các chi phí</span></h2>
           </div>
           <div class="field" style="margin-bottom:16px">
-            <label for="fQuote">All-in 報價（報給客戶的總價，越南盾 ₫）</label>
+            <label for="fQuote">All-in 报价（报给客户的总价，越南盾 ₫）<span class="hint"><br>Báo giá trọn gói cho khách (VND ₫)</span></label>
             <input type="number" id="fQuote" placeholder="60000000" min="0" step="any">
           </div>
 
-          <div class="sub-label">成本明細</div>
+          <div class="sub-label">成本明细 · Chi tiết chi phí</div>
           <div id="costList"></div>
-          <button class="add-btn" id="addCost">＋ 新增成本項目</button>
+          <button class="add-btn" id="addCost">＋ 新增成本项目 · Thêm mục chi phí</button>
         </div>
 
-        <!-- 類型 2 匯差 -->
+        <!-- 类型 2 汇差 -->
         <div class="card" id="fxCard" style="display:none">
           <div class="card-hd">
-            <div class="eyebrow">類型 2 · 匯差</div>
-            <h2 class="card-title">貨款換匯試算</h2>
+            <div class="eyebrow">类型 2 · 汇差 · CHÊNH LỆCH TỶ GIÁ</div>
+            <h2 class="card-title">货款换汇试算<span class="vn">Tính đổi tiền hàng</span></h2>
           </div>
           <div class="fx-box">
             <div class="frow c1" style="margin-bottom:14px">
               <div class="field">
-                <label for="fGoods">貨款（應付越南供應商，越南盾 ₫）</label>
+                <label for="fGoods">货款（应付越南供应商，越南盾 ₫）<span class="hint"><br>Tiền hàng phải trả NCC Việt Nam (VND ₫)</span></label>
                 <input type="number" id="fGoods" placeholder="500000000" min="0" step="any">
               </div>
             </div>
             <div class="frow c2">
               <div class="field">
-                <label for="fRateQuote">報客戶匯率 <span class="hint">1 人民幣 = ? ₫</span></label>
+                <label for="fRateQuote">报客户汇率 <span class="hint">1 人民币 = ? ₫<br>Tỷ giá báo khách</span></label>
                 <input type="number" id="fRateQuote" placeholder="3450" min="0" step="any">
               </div>
               <div class="field">
-                <label for="fRateActual">實際換匯匯率 <span class="hint">1 人民幣 = ? ₫</span></label>
+                <label for="fRateActual">实际换汇汇率 <span class="hint">1 人民币 = ? ₫<br>Tỷ giá đổi thực tế</span></label>
                 <input type="number" id="fRateActual" placeholder="3520" min="0" step="any">
               </div>
             </div>
-            <p class="note">中國客戶付人民幣給 Hong Khang → 換成越南盾付供應商。實際匯率高於報客戶匯率時，中間差額就是匯差利潤。</p>
+            <p class="note">中国客户付人民币给 Hong Khang → 换成越南盾付供应商。实际汇率高于报客户汇率时，中间差额就是汇差利润。<br><span style="color:var(--faint)">Khách TQ trả CNY cho Hong Khang → đổi sang VND trả NCC. Tỷ giá thực tế cao hơn tỷ giá báo khách thì phần chênh lệch là lợi nhuận.</span></p>
           </div>
         </div>
 
         <div class="actions">
-          <button class="btn btn-primary" id="saveBtn">💾 儲存這筆訂單</button>
-          <button class="btn btn-ghost" id="resetBtn">清空重填</button>
+          <button class="btn btn-primary" id="saveBtn"><span id="saveTxt">💾 保存这笔订单</span><span class="vn-i" id="saveVn">Lưu đơn này</span></button>
+          <button class="btn btn-ghost" id="resetBtn"><span>清空重填</span><span class="vn-i">Xóa &amp; nhập lại</span></button>
         </div>
       </div>
 
-      <!-- 即時結果 -->
+      <!-- 即时结果 -->
       <div class="result">
         <div class="card result-card" id="resultCard">
           <div class="result-hd">
             <div>
-              <div class="eyebrow" style="margin-bottom:0">即時利潤</div>
+              <div class="eyebrow" style="margin-bottom:0">即时利润 · LN tức thời</div>
             </div>
-            <span class="type-tag" id="rType">類型 1</span>
+            <span class="type-tag" id="rType">类型 1</span>
           </div>
           <div class="total-block">
-            <div class="lbl">總利潤</div>
+            <div class="lbl">总利润<span class="vn">Tổng lợi nhuận</span></div>
             <div class="total-num pos" id="rTotal">0<span class="cur">₫</span></div>
-            <div class="total-sub" id="rTotalCny">≈ 0 人民幣</div>
+            <div class="total-sub" id="rTotalCny">≈ 0 人民币 CNY</div>
           </div>
           <div class="lines" id="rLines"></div>
           <div class="margin-bar">
-            <div class="mtop"><span>服務利潤率 <span style="color:var(--faint)">(利潤÷報價)</span></span><b id="rMargin">—</b></div>
+            <div class="mtop"><span>服务利润率 <span class="vn">Tỷ suất LN dịch vụ (LN÷báo giá)</span></span><b id="rMargin">—</b></div>
             <div class="track"><div class="fill" id="rMarginFill" style="width:0%;background:var(--pos)"></div></div>
           </div>
         </div>
-        <p class="note" style="padding:0 4px">匯率換算採用下方彙總頁設定的參考匯率；類型 2 匯差則用你在上方填的兩個匯率計算。</p>
+        <p class="note" style="padding:0 4px">币别换算采用「汇总」页设定的参考汇率；类型 2 汇差用你在上方填的两个汇率计算。<br><span style="color:var(--faint)">Quy đổi tiền tệ dùng tỷ giá tham chiếu ở trang Tổng hợp.</span></p>
       </div>
     </div>
   </section>
@@ -434,15 +455,15 @@
   <section class="panel" id="panel-orders">
     <div class="toolbar">
       <div class="grow">
-        <input type="text" class="search" id="searchBox" placeholder="搜尋客戶 / 貨櫃號…">
+        <input type="text" class="search" id="searchBox" placeholder="搜索客户 / 货柜号…  Tìm khách / container…">
         <select id="filterType" style="width:auto">
-          <option value="">全部類型</option>
-          <option value="1">類型 1</option>
-          <option value="2">類型 2</option>
+          <option value="">全部类型 · Tất cả</option>
+          <option value="1">类型 1 · Loại 1</option>
+          <option value="2">类型 2 · Loại 2</option>
         </select>
-        <span class="pill-count" id="ordersCount">0 筆</span>
+        <span class="pill-count" id="ordersCount">0 笔</span>
       </div>
-      <button class="btn btn-ghost" id="exportBtn">⬇ 匯出 CSV</button>
+      <button class="btn btn-ghost" id="exportBtn"><span>⬇ 导出 CSV</span><span class="vn-i">Xuất CSV</span></button>
     </div>
     <div id="ordersHost"></div>
   </section>
@@ -450,15 +471,13 @@
   <!-- ============ TAB 3: SUMMARY ============ -->
   <section class="panel" id="panel-summary">
     <div class="card" style="margin-top:24px">
-      <div class="card-hd" style="display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap">
-        <div>
-          <div class="eyebrow">參考匯率</div>
-          <h2 class="card-title">換匯設定（用於成本幣別換算）</h2>
-        </div>
+      <div class="card-hd">
+        <div class="eyebrow">参考汇率 · TỶ GIÁ THAM CHIẾU</div>
+        <h2 class="card-title">换汇设定（用于成本币别换算）<span class="vn">Cài đặt tỷ giá — quy đổi tiền tệ chi phí</span></h2>
       </div>
       <div class="rates">
-        <div class="rate-item"><label>1 人民幣 (CNY) =</label><input type="number" id="rateCNY" step="any"><span style="color:var(--faint)">₫</span></div>
-        <div class="rate-item"><label>1 美元 (USD) =</label><input type="number" id="rateUSD" step="any"><span style="color:var(--faint)">₫</span></div>
+        <div class="rate-item"><label>1 人民币 CNY =</label><input type="number" id="rateCNY" step="any"><span style="color:var(--faint)">₫</span></div>
+        <div class="rate-item"><label>1 美元 USD =</label><input type="number" id="rateUSD" step="any"><span style="color:var(--faint)">₫</span></div>
       </div>
     </div>
 
@@ -467,16 +486,19 @@
     <div class="toolbar" style="margin-top:8px">
       <div class="grow">
         <div class="seg" id="groupSeg">
-          <button data-g="month" aria-selected="true">依月份</button>
-          <button data-g="customer" aria-selected="false">依客戶</button>
+          <button data-g="month" aria-selected="true">依月份<span class="vn-i">Theo tháng</span></button>
+          <button data-g="customer" aria-selected="false">依客户<span class="vn-i">Theo khách</span></button>
         </div>
       </div>
-      <button class="btn btn-ghost" onclick="window.print()">🖨 列印報表</button>
+      <button class="btn btn-ghost" onclick="window.print()"><span>🖨 打印报表</span><span class="vn-i">In báo cáo</span></button>
     </div>
     <div id="summaryHost"></div>
   </section>
 
-  <div class="foot">資料只儲存在你這台裝置的瀏覽器（localStorage）· 換裝置請用「匯出 CSV」備份</div>
+  <div class="foot">
+    数据只保存在你这台设备的浏览器（localStorage）· 换设备请用「导出 CSV」备份<br>
+    Dữ liệu chỉ lưu trên trình duyệt của thiết bị này · Đổi thiết bị hãy dùng "Xuất CSV" để sao lưu
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -487,10 +509,10 @@
   // ---------- storage ----------
   var LS_ORDERS = "cbpc_orders_v1", LS_RATES = "cbpc_rates_v1", LS_THEME = "cbpc_theme_v1";
   var DEFAULT_COSTS = [
-    { label: "報關費", currency: "VND" },
-    { label: "植物檢疫費", currency: "VND" },
-    { label: "貨櫃費", currency: "VND" },
-    { label: "拖車費", currency: "VND" }
+    { label: "报关费", currency: "VND" },
+    { label: "植物检疫费", currency: "VND" },
+    { label: "货柜费", currency: "VND" },
+    { label: "拖车费", currency: "VND" }
   ];
 
   function load(key, fb) { try { var v = JSON.parse(localStorage.getItem(key)); return v == null ? fb : v; } catch (e) { return fb; } }
@@ -521,8 +543,15 @@
     if (kids != null) (Array.isArray(kids) ? kids : [kids]).forEach(function (c) { if (c != null) e.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
     return e;
   }
+  // th with Chinese primary + Vietnamese secondary
+  function th(cn, vn, isNum) { return el("th", { class: isNum ? "num" : "" }, [document.createTextNode(cn), vn ? el("span", { class: "vn" }, vn) : null]); }
   var toastT;
-  function toast(msg) { var t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove("show"); }, 2200); }
+  function toast(cn, vn) {
+    var t = $("#toast"); t.innerHTML = "";
+    t.appendChild(document.createTextNode(cn));
+    if (vn) t.appendChild(el("span", { class: "vn-i" }, vn));
+    t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove("show"); }, 2200);
+  }
 
   // ---------- theme ----------
   function applyTheme(t) { if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); else document.documentElement.removeAttribute("data-theme"); }
@@ -550,8 +579,8 @@
     var amount = el("input", { type: "number", step: "any", min: "0", placeholder: "0", value: item.amount != null ? item.amount : "" });
     var cur = el("select");
     ["VND", "CNY", "USD"].forEach(function (c) { cur.appendChild(el("option", { value: c, selected: item.currency === c ? "selected" : null }, c)); });
-    var label = el("input", { type: "text", placeholder: "項目名稱", value: item.label || "" });
-    var del = el("button", { class: "del", title: "刪除", type: "button" }, "×");
+    var label = el("input", { type: "text", placeholder: "项目名称 · Tên mục", value: item.label || "" });
+    var del = el("button", { class: "del", title: "删除 · Xóa", type: "button" }, "×");
     var row = el("div", { class: "cost-row" }, [label, amount, cur, del]);
     [label, amount, cur].forEach(function (i) { i.addEventListener("input", recompute); });
     del.addEventListener("click", function () { row.remove(); recompute(); });
@@ -608,19 +637,19 @@
 
   function recompute() {
     var m = readForm(), r = computeFrom(m);
-    $("#rType").textContent = "類型 " + m.type;
+    $("#rType").textContent = "类型 " + m.type;
     var tn = $("#rTotal");
     tn.className = "total-num " + (r.total >= 0 ? "pos" : "neg");
     tn.innerHTML = vnd(r.total) + '<span class="cur">₫</span>';
-    $("#rTotalCny").textContent = "≈ " + fmtCNY.format(Math.round(r.total / (+rates.CNY || 1))) + " 人民幣";
+    $("#rTotalCny").textContent = "≈ " + fmtCNY.format(Math.round(r.total / (+rates.CNY || 1))) + " 人民币 CNY";
 
     var lines = [];
-    lines.push(lineRow("報價 (營收)", vnd(r.revenue), "", "var(--accent)"));
-    lines.push(lineRow("成本合計", "− " + vnd(r.costTotal), "neg", "var(--neg)"));
-    lines.push(lineRow("服務利潤", vnd(r.serviceProfit), r.serviceProfit >= 0 ? "pos" : "neg", "var(--pos)", true));
+    lines.push(lineRow("报价 (营收)", "Báo giá", vnd(r.revenue), "", "var(--accent)"));
+    lines.push(lineRow("成本合计", "Tổng chi phí", "− " + vnd(r.costTotal), "neg", "var(--neg)"));
+    lines.push(lineRow("服务利润", "LN dịch vụ", vnd(r.serviceProfit), r.serviceProfit >= 0 ? "pos" : "neg", "var(--pos)", true));
     if (m.type === "2") {
-      lines.push(lineRow("客戶應付人民幣", fmtCNY.format(Math.round(r.customerPayCNY)) + " 元", "muted", "var(--faint)"));
-      lines.push(lineRow("匯差利潤", vnd(r.fxProfit), r.fxProfit >= 0 ? "pos" : "neg", "var(--brass)"));
+      lines.push(lineRow("客户应付人民币", "Khách trả CNY", fmtCNY.format(Math.round(r.customerPayCNY)) + " 元", "muted", "var(--faint)"));
+      lines.push(lineRow("汇差利润", "LN chênh lệch tỷ giá", vnd(r.fxProfit), r.fxProfit >= 0 ? "pos" : "neg", "var(--brass)"));
     }
     var host = $("#rLines"); host.innerHTML = ""; lines.forEach(function (l) { host.appendChild(l); });
 
@@ -629,8 +658,11 @@
     var fill = $("#rMarginFill"); fill.style.width = pct + "%";
     fill.style.background = r.serviceProfit >= 0 ? "var(--pos)" : "var(--neg)";
   }
-  function lineRow(k, v, vclass, dot, isSum) {
-    var kEl = el("span", { class: "k" }, [el("span", { class: "dot", style: "background:" + (dot || "var(--muted)") }), k]);
+  function lineRow(cn, vn, v, vclass, dot, isSum) {
+    var kEl = el("span", { class: "k" }, [
+      el("span", { class: "dot", style: "background:" + (dot || "var(--muted)") }),
+      el("span", null, [document.createTextNode(cn), el("span", { class: "vn" }, vn)])
+    ]);
     var vEl = el("span", { class: "v " + (vclass || "") }, v);
     return el("div", { class: "line" + (isSum ? " sum" : "") + (vclass === "muted" ? " muted" : "") }, [kEl, vEl]);
   }
@@ -641,21 +673,26 @@
   function genId() { return "o" + (orders.reduce(function (m, o) { return Math.max(m, +String(o.id).slice(1) || 0); }, 0) + 1); }
   $("#saveBtn").addEventListener("click", function () {
     var m = readForm();
-    if (!m.customer) { toast("請先填客戶名稱"); $("#fCustomer").focus(); return; }
-    if (!m.quote) { toast("請填 All-in 報價"); $("#fQuote").focus(); return; }
+    if (!m.customer) { toast("请先填客户名称", "Vui lòng nhập tên khách"); $("#fCustomer").focus(); return; }
+    if (!m.quote) { toast("请填 All-in 报价", "Vui lòng nhập báo giá"); $("#fQuote").focus(); return; }
     if (!m.date) m.date = new Date().toISOString().slice(0, 10);
     if (editingId) {
       var idx = orders.findIndex(function (o) { return o.id === editingId; });
       if (idx >= 0) { m.id = editingId; orders[idx] = m; }
-      editingId = null; $("#saveBtn").innerHTML = "💾 儲存這筆訂單";
-      toast("已更新訂單");
+      editingId = null; setSaveLabel(false);
+      toast("已更新订单", "Đã cập nhật đơn");
     } else {
-      m.id = genId(); orders.push(m); toast("已儲存訂單");
+      m.id = genId(); orders.push(m); toast("已保存订单", "Đã lưu đơn");
     }
     save(LS_ORDERS, orders);
     resetForm();
   });
-  $("#resetBtn").addEventListener("click", function () { editingId = null; $("#saveBtn").innerHTML = "💾 儲存這筆訂單"; resetForm(); });
+  $("#resetBtn").addEventListener("click", function () { editingId = null; setSaveLabel(false); resetForm(); });
+
+  function setSaveLabel(editing) {
+    $("#saveTxt").textContent = editing ? "💾 更新订单" : "💾 保存这笔订单";
+    $("#saveVn").textContent = editing ? "Cập nhật đơn" : "Lưu đơn này";
+  }
 
   function resetForm() {
     $("#fDate").value = new Date().toISOString().slice(0, 10);
@@ -677,15 +714,15 @@
     $("#fDate").value = o.date || ""; $("#fCustomer").value = o.customer || ""; $("#fContainer").value = o.container || "";
     $("#fQuote").value = o.quote || ""; $("#fGoods").value = o.goods || ""; $("#fRateQuote").value = o.rateQuote || ""; $("#fRateActual").value = o.rateActual || "";
     setCosts(o.costs);
-    $("#saveBtn").innerHTML = "💾 更新訂單";
+    setSaveLabel(true);
     $$(".tab").forEach(function (t) { t.setAttribute("aria-selected", t.getAttribute("data-tab") === "calc"); });
     $$(".panel").forEach(function (p) { p.classList.toggle("active", p.id === "panel-calc"); });
     recompute(); window.scrollTo({ top: 0, behavior: "smooth" });
   }
   function deleteOrder(id) {
-    if (!confirm("確定刪除這筆訂單？")) return;
+    if (!confirm("确定删除这笔订单？\nXác nhận xóa đơn này?")) return;
     orders = orders.filter(function (o) { return o.id !== id; }); save(LS_ORDERS, orders);
-    renderOrders(); toast("已刪除");
+    renderOrders(); toast("已删除", "Đã xóa");
   }
 
   // ---------- orders table ----------
@@ -698,20 +735,23 @@
       return true;
     }).sort(function (a, b) { return (b.date || "").localeCompare(a.date || ""); });
 
-    $("#ordersCount").textContent = list.length + " 筆";
+    $("#ordersCount").textContent = list.length + " 笔 đơn";
     var host = $("#ordersHost");
-    if (!orders.length) { host.innerHTML = ""; host.appendChild(emptyState("還沒有訂單", "到「計算 / 新增」頁填一筆並儲存，就會出現在這裡。")); return; }
-    if (!list.length) { host.innerHTML = ""; host.appendChild(emptyState("找不到符合的訂單", "換個關鍵字或篩選條件試試。")); return; }
+    if (!orders.length) { host.innerHTML = ""; host.appendChild(emptyState("还没有订单", "Chưa có đơn hàng", "到「计算 / 新增」页填一笔并保存。", "Vào trang \"Tính / Thêm mới\", nhập và lưu.")); return; }
+    if (!list.length) { host.innerHTML = ""; host.appendChild(emptyState("找不到符合的订单", "Không tìm thấy đơn", "换个关键字或筛选条件试试。", "Thử từ khóa hoặc bộ lọc khác.")); return; }
 
-    var headers = ["日期", "客戶", "類型", "貨櫃號", "報價", "成本", "服務利潤", "匯差", "總利潤", "利潤率", ""];
-    var thead = el("tr", null, headers.map(function (h, i) { return el("th", { class: (i >= 4 && i <= 9) ? "num" : "" }, h); }));
+    var thead = el("tr", null, [
+      th("日期", "Ngày"), th("客户", "Khách"), th("类型", "Loại"), th("货柜号", "Container"),
+      th("报价", "Báo giá", true), th("成本", "Chi phí", true), th("服务利润", "LN dịch vụ", true),
+      th("汇差", "Chênh lệch", true), th("总利润", "Tổng LN", true), th("利润率", "Tỷ suất", true), th("", "")
+    ]);
     var tbody = el("tbody");
     list.forEach(function (o) {
       var r = computeFrom(o);
       var tr = el("tr", null, [
         el("td", null, o.date || "—"),
         el("td", null, el("strong", null, o.customer || "—")),
-        el("td", null, el("span", { class: "tag-type t" + o.type }, "類型 " + o.type)),
+        el("td", null, el("span", { class: "tag-type t" + o.type }, "类型 " + o.type)),
         el("td", { style: "color:var(--muted);font-family:var(--mono);font-size:12.5px" }, o.container || "—"),
         el("td", { class: "num" }, vnd(r.revenue)),
         el("td", { class: "num", style: "color:var(--neg)" }, vnd(r.costTotal)),
@@ -720,8 +760,8 @@
         el("td", { class: "num", style: "font-weight:700;color:" + (r.total >= 0 ? "var(--pos)" : "var(--neg)") }, vnd(r.total)),
         el("td", { class: "num" }, o.quote > 0 ? fmtPct(r.margin) : "—"),
         el("td", null, el("div", { class: "row-act" }, [
-          el("button", { class: "mini", type: "button", onclick: function () { editOrder(o.id); } }, "編輯"),
-          el("button", { class: "mini danger", type: "button", onclick: function () { deleteOrder(o.id); } }, "刪除")
+          el("button", { class: "mini", type: "button", onclick: function () { editOrder(o.id); } }, "编辑"),
+          el("button", { class: "mini danger", type: "button", onclick: function () { deleteOrder(o.id); } }, "删除")
         ]))
       ]);
       tbody.appendChild(tr);
@@ -729,23 +769,29 @@
     var table = el("table", null, [el("thead", null, thead), tbody]);
     host.innerHTML = ""; host.appendChild(el("div", { class: "table-wrap" }, table));
   }
-  function emptyState(title, sub) { return el("div", { class: "card empty" }, [el("div", { class: "big" }, "◍"), el("h3", null, title), el("p", null, sub)]); }
+  function emptyState(title, titleVn, sub, subVn) {
+    return el("div", { class: "card empty" }, [
+      el("div", { class: "big" }, "◍"),
+      el("h3", null, title + " · " + titleVn),
+      el("p", null, [document.createTextNode(sub), el("span", { class: "vn" }, subVn)])
+    ]);
+  }
   $("#searchBox").addEventListener("input", renderOrders);
   $("#filterType").addEventListener("change", renderOrders);
 
   // ---------- CSV ----------
   $("#exportBtn").addEventListener("click", function () {
-    if (!orders.length) { toast("沒有資料可匯出"); return; }
-    var head = ["日期", "客戶", "類型", "貨櫃號", "報價VND", "成本VND", "服務利潤VND", "匯差利潤VND", "總利潤VND", "利潤率"];
+    if (!orders.length) { toast("没有数据可导出", "Không có dữ liệu"); return; }
+    var head = ["日期 Ngày", "客户 Khách", "类型 Loại", "货柜号 Container", "报价 Báo giá(VND)", "成本 Chi phí(VND)", "服务利润 LN dịch vụ(VND)", "汇差利润 LN chênh lệch(VND)", "总利润 Tổng LN(VND)", "利润率 Tỷ suất"];
     var rows = orders.slice().sort(function (a, b) { return (b.date || "").localeCompare(a.date || ""); }).map(function (o) {
       var r = computeFrom(o);
-      return [o.date || "", o.customer || "", "類型" + o.type, o.container || "", Math.round(r.revenue), Math.round(r.costTotal), Math.round(r.serviceProfit), Math.round(r.fxProfit), Math.round(r.total), o.quote > 0 ? fmtPct(r.margin) : ""];
+      return [o.date || "", o.customer || "", "类型" + o.type, o.container || "", Math.round(r.revenue), Math.round(r.costTotal), Math.round(r.serviceProfit), Math.round(r.fxProfit), Math.round(r.total), o.quote > 0 ? fmtPct(r.margin) : ""];
     });
     var csv = [head].concat(rows).map(function (row) { return row.map(function (c) { var s = String(c); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(","); }).join("\n");
     var blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-    var a = el("a", { href: URL.createObjectURL(blob), download: "報關利潤_" + new Date().toISOString().slice(0, 10) + ".csv" });
+    var a = el("a", { href: URL.createObjectURL(blob), download: "报关利润_" + new Date().toISOString().slice(0, 10) + ".csv" });
     document.body.appendChild(a); a.click(); a.remove();
-    toast("已匯出 CSV");
+    toast("已导出 CSV", "Đã xuất CSV");
   });
 
   // ---------- summary ----------
@@ -757,7 +803,6 @@
     });
   });
   function renderSummary() {
-    // rates inputs
     $("#rateCNY").value = rates.CNY; $("#rateUSD").value = rates.USD;
 
     var agg = orders.reduce(function (a, o) {
@@ -768,32 +813,35 @@
     var avgMargin = agg.rev > 0 ? agg.svc / agg.rev : 0;
 
     var kpis = [
-      { k: "總利潤", v: vnd(agg.total), cur: "₫", sub: agg.n + " 筆訂單", hero: true },
-      { k: "服務利潤", v: vnd(agg.svc), cur: "₫", sub: "報價 − 成本" },
-      { k: "匯差利潤", v: vnd(agg.fx), cur: "₫", sub: "類型 2 換匯" },
-      { k: "平均利潤率", v: agg.rev > 0 ? fmtPct(avgMargin) : "—", cur: "", sub: "服務利潤 ÷ 報價" }
+      { k: "总利润", vn: "Tổng lợi nhuận", v: vnd(agg.total), cur: "₫", sub: agg.n + " 笔订单 · " + agg.n + " đơn", hero: true },
+      { k: "服务利润", vn: "LN dịch vụ", v: vnd(agg.svc), cur: "₫", sub: "报价 − 成本 · Báo giá − chi phí" },
+      { k: "汇差利润", vn: "LN chênh lệch tỷ giá", v: vnd(agg.fx), cur: "₫", sub: "类型 2 换汇 · Đổi tiền loại 2" },
+      { k: "平均利润率", vn: "Tỷ suất LN bình quân", v: agg.rev > 0 ? fmtPct(avgMargin) : "—", cur: "", sub: "服务利润 ÷ 报价" }
     ];
     var kg = $("#kpiGrid"); kg.innerHTML = "";
     kpis.forEach(function (x) {
       kg.appendChild(el("div", { class: "kpi" + (x.hero ? " hero" : "") }, [
-        el("div", { class: "k" }, x.k),
+        el("div", { class: "k" }, [document.createTextNode(x.k), el("span", { class: "vn" }, x.vn)]),
         el("div", { class: "v" }, [document.createTextNode(x.v), x.cur ? el("span", { class: "cur" }, " " + x.cur) : null]),
         el("div", { class: "sub" }, x.sub)
       ]));
     });
 
     var host = $("#summaryHost");
-    if (!orders.length) { host.innerHTML = ""; host.appendChild(emptyState("還沒有資料", "儲存幾筆訂單後，這裡會依月份或客戶自動加總。")); return; }
+    if (!orders.length) { host.innerHTML = ""; host.appendChild(emptyState("还没有数据", "Chưa có dữ liệu", "保存几笔订单后会自动加总。", "Sau khi lưu vài đơn sẽ tự cộng.")); return; }
 
     var groups = {};
     orders.forEach(function (o) {
-      var key = groupMode === "month" ? (o.date || "").slice(0, 7) || "未填日期" : (o.customer || "未填客戶");
+      var key = groupMode === "month" ? ((o.date || "").slice(0, 7) || "未填日期") : (o.customer || "未填客户");
       (groups[key] = groups[key] || []).push(o);
     });
     var keys = Object.keys(groups).sort(function (a, b) { return groupMode === "month" ? b.localeCompare(a) : a.localeCompare(b); });
 
-    var headers = [groupMode === "month" ? "月份" : "客戶", "筆數", "報價", "成本", "服務利潤", "匯差", "總利潤", "利潤率"];
-    var thead = el("tr", null, headers.map(function (h, i) { return el("th", { class: i >= 2 ? "num" : "" }, h); }));
+    var thead = el("tr", null, [
+      groupMode === "month" ? th("月份", "Tháng") : th("客户", "Khách hàng"),
+      th("笔数", "Số đơn", true), th("报价", "Báo giá", true), th("成本", "Chi phí", true),
+      th("服务利润", "LN dịch vụ", true), th("汇差", "Chênh lệch", true), th("总利润", "Tổng LN", true), th("利润率", "Tỷ suất", true)
+    ]);
     var tbody = el("tbody");
     keys.forEach(function (key) {
       var g = groups[key].reduce(function (a, o) { var r = computeFrom(o); a.rev += r.revenue; a.cost += r.costTotal; a.svc += r.serviceProfit; a.fx += r.fxProfit; a.total += r.total; a.n++; return a; }, { rev: 0, cost: 0, svc: 0, fx: 0, total: 0, n: 0 });
