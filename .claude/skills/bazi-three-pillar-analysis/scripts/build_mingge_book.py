@@ -46,6 +46,8 @@ class Doc:
         self.meta, self.pillars, self.chart = {}, [], []
         self.interactions, self.dayun, self.keyyears = {}, [], []
         self.body = []
+        self.toc = []          # ("chap", num, name, sub) / ("sec", title) / ("extra", title)
+        self.in_letter = False
 
 
 def parse(md):
@@ -180,6 +182,8 @@ def parse(md):
             kind = "appendix" if s.startswith("@appendix ") else "letter"
             title = s.split(" ", 1)[1].strip()
             cls = "page-appendix" if kind == "appendix" else "page-letter"
+            d.in_letter = (kind == "letter")
+            d.toc.append(("extra", title))
             d.body.append(f'<section class="{cls}"><h2 class="{kind}-title">{inline(title)}</h2>')
             i += 1
             continue
@@ -193,6 +197,8 @@ def parse(md):
             sub = parts[2].strip() if len(parts) > 2 else ""
             idx = CN_NUM.index(num) + 1 if num in CN_NUM else 0
             side = f"第{'一二三四五六七八九十'[idx-1]}章 · {name}" if idx else name
+            d.in_letter = False
+            d.toc.append(("chap", side, name, sub))
             d.body.append(
                 f'<section class="chapter"><div class="chead">'
                 f'<div class="cseal">{num}</div>'
@@ -203,17 +209,42 @@ def parse(md):
         if s.startswith("#### "):
             d.body.append(f'<div class="act">{inline(s[5:])}</div>'); i += 1; continue
         if s.startswith("### "):
+            d.toc.append(("sec", s[4:]))
             d.body.append(f'<h3><span class="dia">◆</span> {inline(s[4:])}</h3>'); i += 1; continue
         if s.startswith("# "):
             i += 1; continue
+        if s.startswith("> "):
+            d.body.append(f'<div class="formula">{inline(s[2:])}</div>'); i += 1; continue
         if not s or s == "---":
             i += 1; continue
+
+        if d.in_letter and s.startswith("——"):
+            d.body.append(f'<div class="sign">{inline(s)}<span class="sseal">'
+                          f'{d.meta.get("印", "坤")}</span></div>')
+            i += 1
+            continue
 
         d.body.append(f"<p>{inline(s)}</p>")
         i += 1
 
     flush_tbl()
     return d
+
+
+def toc_page(d):
+    npil = "三" if len(d.pillars) == 3 else "四"
+    rows = [f'<div class="tc"><div class="tcname">{npil}柱命盤</div>'
+            f'<div class="tcsub">{npil}柱全圖、藏干副星、神煞、干支互動、大運流轉</div></div>']
+    for e in d.toc:
+        if e[0] == "chap":
+            rows.append(f'<div class="tc"><div class="tcname">{inline(e[1])}</div>'
+                        f'<div class="tcsub">{inline(e[3])}</div></div>')
+        elif e[0] == "extra":
+            rows.append(f'<div class="tc"><div class="tcname">{inline(e[1])}</div></div>')
+        else:
+            rows.append(f'<div class="ts">{inline(e[1])}</div>')
+    return (f'<section class="page"><h2 class="pgtitle">◈ 本書總覽</h2>'
+            f'<div class="tocwrap">{"".join(rows)}</div></section>')
 
 
 def cover(d):
@@ -223,11 +254,13 @@ def cover(d):
         cards += (f'<div class="pcard"><div class="plab">{lab}</div>'
                   f'<div class="pgz">{color_ganzhi(g, "23pt")}<br>{color_ganzhi(z, "23pt")}</div></div>')
     seal = d.meta.get("印", "坤")
+    import math
+    pts = [(23 + 14 * math.cos(math.radians(a)), 23 + 14 * math.sin(math.radians(a)))
+           for a in (270, 342, 54, 126, 198)]
     ring = ('<svg width="46" height="46" viewBox="0 0 46 46">'
-            '<circle cx="23" cy="23" r="15" fill="none" stroke="#ccc" stroke-width="1"/>' +
-            "".join(f'<circle cx="{23+15*__import__("math").cos(a*3.14159/180):.1f}" '
-                    f'cy="{23+15*__import__("math").sin(a*3.14159/180):.1f}" r="3" fill="{c}"/>'
-                    for a, c in zip([270, 342, 54, 126, 198], list(ELEM.values()))) + "</svg>")
+            '<circle cx="23" cy="23" r="14" fill="none" stroke="#ddd6c4" stroke-width="0.8"/>' +
+            "".join(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2.6" fill="{c}"/>'
+                    for (x, y), c in zip(pts, ELEM.values())) + "</svg>")
     return f"""<section class="cover"><div class="cframe">
 <div class="ckicker">八 字 命 盤 深 度 解 析</div>
 <div class="cmain">命 格 書</div>
@@ -246,7 +279,8 @@ def chart_page(d):
     labels = [p[0] for p in d.pillars] or ["年柱", "月柱", "日柱"]
     meta_keys = ["性別", "出生", "出生地", "節氣", "生肖", "日主", "月令", "起運"]
     cells = "".join(
-        f'<div class="mi"><span class="mk">{k}</span><span class="mv">{inline(d.meta.get(k,""))}</span></div>'
+        f'<div class="mi{" mi-wide" if len(d.meta.get(k,"")) > 16 else ""}">'
+        f'<span class="mk">{k}</span><span class="mv">{inline(d.meta.get(k,""))}</span></div>'
         for k in meta_keys if d.meta.get(k))
     head = "".join(
         f'<th class="{"selfcol" if ("日" in l) else ""}">{l}</th>' for l in labels)
@@ -391,11 +425,13 @@ strong {{ color:var(--navy); }}
 /* 通用頁 */
 .page, .page-appendix, .page-letter {{ page-break-before:always; position:relative; padding-top:4mm; }}
 .pgtitle {{ text-align:center; font-family:'Noto Sans TC',sans-serif; font-size:14pt; color:var(--navy);
-            letter-spacing:.18em; margin-bottom:14px; }}
-.mgrid {{ display:grid; grid-template-columns:repeat(3,1fr); gap:3px 14px; margin-bottom:14px;
-          font-family:'Noto Sans TC',sans-serif; font-size:9pt; }}
-.mk {{ color:var(--navy); font-weight:700; margin-right:8px; }}
+            letter-spacing:.18em; margin-bottom:9px; }}
+.mgrid {{ display:grid; grid-template-columns:repeat(3,1fr); gap:2px 12px; margin-bottom:14px;
+          font-family:'Noto Sans TC',sans-serif; font-size:8.5pt; line-height:1.7; }}
+.mi {{ display:flex; gap:7px; align-items:baseline; }}
+.mk {{ color:var(--navy); font-weight:700; flex:0 0 auto; }}
 .mv {{ color:#555; }}
+.mi-wide {{ grid-column:span 2; }}
 
 /* 命盤主表 */
 table.chart {{ width:100%; border-collapse:collapse; font-family:'Noto Sans TC',sans-serif; font-size:9pt; }}
@@ -435,7 +471,7 @@ table.chart td.ss {{ font-size:8pt; line-height:1.5; }}
 .ctitle h2 {{ font-family:'Noto Sans TC',sans-serif; font-size:16pt; color:var(--navy); line-height:1.3; }}
 .csub {{ font-size:9pt; color:#8a8a8a; margin-top:2px; }}
 .cside {{ position:absolute; right:0; top:0; writing-mode:vertical-rl; font-size:7.5pt;
-          color:#b0b0b0; letter-spacing:.14em; max-height:32mm; }}
+          color:#b0b0b0; letter-spacing:.14em; white-space:nowrap; }}
 .crule {{ border-top:1.6px solid var(--navy); margin:10px 0 16px; }}
 
 h3 {{ font-family:'Noto Sans TC',sans-serif; font-size:12pt; color:var(--navy); font-weight:700;
@@ -473,6 +509,9 @@ h3 .dia {{ color:var(--seal); margin-right:3px; }}
 .xage {{ font-size:6.5px; fill:#aaa; text-anchor:middle; font-family:'Noto Sans TC',sans-serif; }}
 .nowlab {{ font-size:7px; fill:{NAVY}; font-family:'Noto Sans TC',sans-serif; }}
 .cap {{ font-size:8pt; color:#9a9a9a; margin-bottom:1em; }}
+.formula {{ text-align:center; font-family:'Noto Sans TC',sans-serif; font-size:11pt; font-weight:700;
+            color:var(--navy); background:var(--band); border-radius:4px; padding:10px 14px;
+            margin:.8em 0 1.1em; letter-spacing:.06em; }}
 
 /* 表格 */
 table {{ width:100%; border-collapse:collapse; margin:.4em 0 1em; font-size:9pt;
@@ -486,6 +525,18 @@ td strong {{ color:var(--seal); }}
 .appendix-title, .letter-title {{ text-align:center; font-family:'Noto Sans TC',sans-serif;
    font-size:13pt; color:var(--navy); letter-spacing:.32em; text-indent:.32em; margin:6mm 0 8mm; }}
 .page-letter p {{ margin-bottom:.9em; }}
+.sign {{ text-align:right; margin-top:2em; font-size:9.5pt; color:#777; }}
+.sseal {{ display:inline-block; margin-left:10px; background:var(--seal); color:#fff;
+          font-family:'Noto Sans TC',sans-serif; font-weight:700; font-size:11pt;
+          padding:3px 7px; border-radius:2px; vertical-align:middle; }}
+
+/* 目錄 */
+.tocwrap {{ margin-top:0; }}
+.tc {{ border-top:1px solid var(--line); padding-top:2px; margin-top:2px; }}
+.tcname {{ font-family:'Noto Sans TC',sans-serif; font-size:10pt; font-weight:700; color:var(--navy); }}
+.tcsub {{ font-size:7.5pt; color:#9a9a9a; margin-top:0; line-height:1.4; }}
+.ts {{ font-size:8.5pt; color:#555; margin:0 0 0 24px; line-height:1.3; }}
+.page .tocwrap + * {{ margin-top:0; }}
 """
 
 
@@ -501,7 +552,7 @@ def build_html(d):
             body = body[:m.end()] + chart + body[m.end():]
     return f"""<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8">
 <link rel="stylesheet" href="fonts.css"><style>{CSS}</style></head><body>
-{cover(d)}{chart_page(d)}{body}
+{cover(d)}{toc_page(d)}{chart_page(d)}{body}
 </body></html>"""
 
 
